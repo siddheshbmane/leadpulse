@@ -1,0 +1,23 @@
+@import "tailwindcss";
+
+:root {
+  --background: #0a0a0a;
+  --foreground: #ededed;
+  --accent: #00ff9d;
+  --accent-foreground: #000000;
+  --muted: #1a1a1a;
+  --muted-foreground: #a1a1aa;
+  --border: #27272a;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+@layer base {
+  * {
+    border-color: var(--border);
+  }
+}

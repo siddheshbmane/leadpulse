@@ -1,0 +1,18 @@
+
+> web@0.1.0 start
+> next start -p 3000 -H 0.0.0.0
+
+▲ Next.js 16.1.6
+- Local:         http://localhost:3000
+- Network:       http://0.0.0.0:3000
+
+✓ Starting...
+⚠ Warning: Next.js inferred your workspace root, but it may not be correct.
+ We detected multiple lockfiles and selected the directory of /data/.openclaw/workspace/package-lock.json as the root directory.
+ To silence this warning, set `outputFileTracingRoot` in your Next.js config, or consider removing one of the lockfiles if it's not needed.
+   See https://nextjs.org/docs/app/api-reference/config/next-config-js/output#caveats for more information.
+ Detected additional lockfiles: 
+   * /data/.openclaw/workspace/leadpulse/apps/web/package-lock.json
+   * /data/.openclaw/workspace/leadpulse/package-lock.json
+
+✓ Ready in 781ms

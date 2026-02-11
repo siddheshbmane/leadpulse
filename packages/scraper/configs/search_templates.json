@@ -1,0 +1,49 @@
+{
+  "templates": [
+    {
+      "niche": "Series A Companies",
+      "filters": {
+        "keywords": ["\"Series A\"", "\"just raised\"", "scaling", "\"hiring for growth\""],
+        "industry": ["Software Development", "Information Technology", "Internet"],
+        "jobTitles": ["Founder", "CEO", "VP of Sales", "Head of Growth"],
+        "intentSignal": "Funding/Hypergrowth"
+      }
+    },
+    {
+      "niche": "B2B Companies",
+      "filters": {
+        "keywords": ["\"B2B\"", "\"Go-to-Market\"", "GTM", "SaaS", "webinar"],
+        "industry": ["Professional Services", "Advertising Services", "Business Consulting"],
+        "jobTitles": ["Director of Marketing", "Sales Operations Manager", "CEO"],
+        "intentSignal": "Marketing Activity/Sales Efficiency"
+      }
+    },
+    {
+      "niche": "Manufacturing",
+      "filters": {
+        "keywords": ["\"Industry 4.0\"", "digitization", "\"AI integration\"", "\"supply chain automation\"", "Smart Factory"],
+        "industry": ["Manufacturing", "Industrial Automation", "Machinery Manufacturing"],
+        "jobTitles": ["CTO", "Operations Manager", "Director of Innovation", "Plant Manager"],
+        "intentSignal": "Digital Transformation"
+      }
+    },
+    {
+      "niche": "Real Estate",
+      "filters": {
+        "keywords": ["\"Head of Sales\"", "PropTech", "acquisition", "\"market expansion\"", "development"],
+        "industry": ["Real Estate", "Commercial Real Estate", "Real Estate Development"],
+        "jobTitles": ["Managing Director", "Head of Sales", "Brokerage Manager", "Director of Acquisitions"],
+        "intentSignal": "Sales Leadership Expansion"
+      }
+    },
+    {
+      "niche": "Finance",
+      "filters": {
+        "keywords": ["FinTech", "compliance", "asset management", "\"digital banking\"", "\"Risk Management\""],
+        "industry": ["Financial Services", "Banking", "Investment Management", "Venture Capital"],
+        "jobTitles": ["CFO", "Head of Product", "Chief Compliance Officer", "Managing Partner"],
+        "intentSignal": "Innovation/Regulatory Shift"
+      }
+    }
+  ]
+}

@@ -1,0 +1,121 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum LeadStatus {
+  NEW
+  ENRICHED
+  QUALIFIED
+  CONTACTED
+  WON
+  LOST
+  IGNORED
+}
+
+model User {
+  id            String         @id @default(uuid())
+  email         String?        @unique
+  fullName      String?
+  avatarUrl     String?
+  role          String         @default("user")
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  
+  searchFilters SearchFilter[]
+  leads         Lead[]
+
+  @@map("users")
+}
+
+model SearchFilter {
+  id               String    @id @default(uuid())
+  ownerId          String
+  owner            User      @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  
+  name             String
+  description      String?
+  
+  // The target definition (keep flexible so product can evolve)
+  query            Json      @default("{}")
+  
+  // Scheduling / agent control
+  isActive         Boolean   @default(true)
+  runEveryMinutes  Int?
+  lastRunAt        DateTime?
+  nextRunAt        DateTime?
+  
+  // Operational metadata
+  lastRunStatus    String?   // success|error|partial
+  lastRunError     String?
+  
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  
+  leads            Lead[]
+
+  @@index([ownerId])
+  @@index([isActive, nextRunAt])
+  @@map("search_filters")
+}
+
+model Lead {
+  id              String     @id @default(uuid())
+  ownerId         String
+  owner           User       @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  
+  searchFilterId  String?
+  searchFilter    SearchFilter? @relation(fields: [searchFilterId], references: [id], onDelete: SetNull)
+  
+  // Identity / dedupe
+  externalId      String?    // id from platform (place_id, profile_id, etc.)
+  source          String     // e.g. google_maps|linkedin|website|reddit
+  sourceUrl       String?
+  
+  // Company / person fields
+  companyName     String?
+  personName      String?
+  title           String?
+  
+  email           String?
+  phone           String?
+  website         String?
+  linkedinUrl     String?
+  
+  country         String?
+  region          String?
+  city            String?
+  
+  // Lead lifecycle
+  status          LeadStatus @default(NEW)
+  score           Decimal?   @db.Decimal(5, 2)
+  
+  tags            String[]   @default([])
+  
+  // Raw + enrichment payloads
+  raw             Json       @default("{}")
+  enrichment      Json       @default("{}")
+  
+  discoveredAt    DateTime   @default(now())
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+
+  @@index([ownerId])
+  @@index([searchFilterId])
+  @@index([ownerId, status])
+  @@index([ownerId, email])
+  @@index([ownerId, source, externalId])
+  
+  // Dedupe constraints
+  @@unique([ownerId, email], name: "uq_leads_owner_email")
+  @@unique([ownerId, source, externalId], name: "uq_leads_owner_source_external")
+  
+  @@map("leads")
+}

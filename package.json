@@ -10,10 +10,14 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@prisma/client": "^7.4.0",
     "cheerio": "^1.2.0",
     "pm2": "^6.0.14",
     "puppeteer": "^24.37.2",
     "puppeteer-extra": "^3.3.6",
     "puppeteer-extra-plugin-stealth": "^2.11.2"
+  },
+  "devDependencies": {
+    "prisma": "^7.4.0"
   }
 }

@@ -1,12 +1,10 @@
-import type { Metadata } from "next";
-import { Inter } from "next/font/google";
 import "./globals.css";
-
-const inter = Inter({ subsets: ["latin"] });
+import type { Metadata } from "next";
+import DashboardLayout from "@/components/layout/DashboardLayout";
 
 export const metadata: Metadata = {
-  title: "LeadPulse | Command Center",
-  description: "Enterprise-grade Lead Intelligence",
+  title: "LeadPulse | Dashboard",
+  description: "Real-time intent signals and lead tracking.",
 };
 
 export default function RootLayout({
@@ -15,9 +13,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="dark">
-      <body className={`${inter.className} antialiased bg-[#0a0a0a] text-[#ededed]`}>
-        {children}
+    <html lang="en">
+      <body>
+        <DashboardLayout>
+          {children}
+        </DashboardLayout>
       </body>
     </html>
   );

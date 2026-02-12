@@ -13,6 +13,9 @@
     "build": "cd apps/web && npm run build",
     "start": "cd apps/web && npm run start"
   },
+  "engines": {
+    "node": "22"
+  },
   "keywords": [],
   "author": "",
   "license": "ISC",

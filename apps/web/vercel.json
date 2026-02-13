@@ -1,5 +1,12 @@
 {
   "rewrites": [
-    { "source": "/(.*)", "destination": "/" }
+    {
+      "source": "/(leads|intelligence|search-filters|settings)(.*)",
+      "destination": "/$1$2"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/"
+    }
   ]
 }

@@ -1,0 +1,7 @@
+Vercel CLI 50.15.1
+WARN! Did you mean to deploy the subdirectory "logs"? Use `vc --cwd logs` instead.
+Retrieving project…
+Resolving deployment "dpl_6UMtBBkzXXaU6qt3Pf9pxkK2PLN9"
+Streaming logs for deployment dpl_6UMtBBkzXXaU6qt3Pf9pxkK2PLN9 starting from 02:03:11.44
+
+waiting for new logs...

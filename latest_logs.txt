@@ -1,0 +1,5 @@
+Vercel CLI 50.15.1
+WARN! Did you mean to deploy the subdirectory "logs"? Use `vc --cwd logs` instead.
+Retrieving project…
+Resolving deployment "leadpulse"
+Error: Deployment not found: leadpulse

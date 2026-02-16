@@ -1,0 +1,3 @@
+Vercel CLI 50.15.1
+WARN! Did you mean to deploy the subdirectory "logs"? Use `vc --cwd logs` instead.
+Error: The --follow flag does not support filtering. Remove: --query

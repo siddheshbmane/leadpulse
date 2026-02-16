@@ -1,0 +1,7 @@
+Vercel CLI 50.15.1
+WARN! Did you mean to deploy the subdirectory "logs"? Use `vc --cwd logs` instead.
+Fetching project "leadpulse"
+Resolving deployment "leadpulse-psgtenyyc-siddheshs-projects-13001211.vercel.app"
+Streaming logs for deployment dpl_4BGwdERGN6PTjcUgo6kwc1rmXy8g starting from 02:45:49.17
+
+waiting for new logs...

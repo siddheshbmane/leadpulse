@@ -11,22 +11,16 @@ function hashCode(str: string): string {
   return Math.abs(hash).toString(36);
 }
 
-function buildSearchUrl(query: SearchQuery): string {
+function buildQuery(query: SearchQuery): string {
   const parts: string[] = [];
-
   if (query.keywords?.length) parts.push(query.keywords.join(" "));
   if (query.industries?.length) parts.push(query.industries.join(" "));
   if (query.location) parts.push(query.location);
-
-  const q = encodeURIComponent(
-    `site:google.com/maps ${parts.join(" ")}`
-  );
-  return `https://lite.duckduckgo.com/lite/?q=${q}`;
+  return parts.join(" ");
 }
 
 export class GoogleMapsScraper implements SourceScraper {
   async scrape(query: SearchQuery, limit = 20): Promise<ScraperResult> {
-    // If Google Places API key is available, prefer it
     if (process.env.GOOGLE_PLACES_API_KEY) {
       return this.scrapeWithPlacesApi(query, limit);
     }
@@ -38,13 +32,10 @@ export class GoogleMapsScraper implements SourceScraper {
     query: SearchQuery,
     limit: number
   ): Promise<ScraperResult> {
-    const textQuery = [
-      ...(query.keywords || []),
-      ...(query.industries || []),
-      query.location,
-    ]
-      .filter(Boolean)
-      .join(" ");
+    const textQuery = buildQuery(query);
+    if (!textQuery.trim()) {
+      return { leads: [], totalFound: 0 };
+    }
 
     const url = `https://maps.googleapis.com/maps/api/place/textsearch/json?query=${encodeURIComponent(textQuery)}&key=${process.env.GOOGLE_PLACES_API_KEY}`;
 
@@ -58,7 +49,9 @@ export class GoogleMapsScraper implements SourceScraper {
 
     for (const place of (data.results || []).slice(0, limit)) {
       leads.push({
-        externalId: place.place_id || hashCode(place.name + place.formatted_address),
+        externalId:
+          place.place_id ||
+          hashCode(place.name + place.formatted_address),
         source: "google_maps",
         sourceUrl: `https://www.google.com/maps/place/?q=place_id:${place.place_id}`,
         companyName: place.name,
@@ -81,14 +74,23 @@ export class GoogleMapsScraper implements SourceScraper {
     query: SearchQuery,
     limit: number
   ): Promise<ScraperResult> {
-    const url = buildSearchUrl(query);
+    const textQuery = buildQuery(query);
+    if (!textQuery.trim()) {
+      return { leads: [], totalFound: 0 };
+    }
+
+    const searchQuery = `${textQuery} business directory`;
+    const url = `https://html.duckduckgo.com/html/?q=${encodeURIComponent(searchQuery)}`;
 
     const response = await fetch(url, {
       headers: {
         "User-Agent":
-          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-        Accept: "text/html",
+          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+        Accept:
+          "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        "Accept-Language": "en-US,en;q=0.9",
       },
+      redirect: "follow",
     });
 
     if (!response.ok) {
@@ -98,34 +100,68 @@ export class GoogleMapsScraper implements SourceScraper {
     const html = await response.text();
     const $ = cheerio.load(html);
     const leads: ScraperResult["leads"] = [];
+    const seenNames = new Set<string>();
 
-    $("a").each((_, el) => {
+    // Parse DuckDuckGo HTML results
+    $(".result").each((_, resultEl) => {
       if (leads.length >= limit) return false;
 
-      const href = $(el).attr("href") || "";
-      if (!href.includes("google.com/maps")) return;
-
-      const linkText = $(el).text().trim();
-      const snippetText = $(el).parent().text().trim();
+      const linkEl = $(resultEl).find("a.result__a");
+      const snippetEl = $(resultEl).find(".result__snippet");
+      const href = linkEl.attr("href") || "";
+      const linkText = linkEl.text().trim();
+      const snippetText = snippetEl.text().trim();
 
       if (!linkText) return;
 
-      // Extract business name — usually the link text before any separators
+      // Extract business name from the result title
       const nameParts = linkText.split(/\s*[-–—·|]\s*/);
       const businessName = nameParts[0]?.trim();
-      if (!businessName) return;
+      if (!businessName || businessName.length < 2) return;
 
-      const externalId = hashCode(businessName + (query.location || ""));
+      const nameKey = businessName.toLowerCase();
+      if (seenNames.has(nameKey)) return;
+      seenNames.add(nameKey);
+
+      // Try to extract phone from snippet
+      const phoneMatch = snippetText.match(
+        /(?:\+?\d{1,3}[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}/
+      );
+      // Try to extract website from href
+      let website: string | undefined;
+      try {
+        const parsedUrl = new URL(href);
+        if (
+          !parsedUrl.hostname.includes("duckduckgo") &&
+          !parsedUrl.hostname.includes("google")
+        ) {
+          website = parsedUrl.origin;
+        }
+      } catch {
+        // Invalid URL
+      }
+
+      const externalId = hashCode(
+        businessName + (query.location || "")
+      );
 
       leads.push({
         externalId,
         source: "google_maps",
         sourceUrl: href,
         companyName: businessName,
+        phone: phoneMatch?.[0],
+        website,
         city: query.location,
         raw: { linkText, snippetText, href },
       });
     });
+
+    if (leads.length === 0) {
+      console.warn(
+        `[GoogleMapsScraper] No leads parsed. HTML preview: ${html.slice(0, 500)}`
+      );
+    }
 
     return { leads, totalFound: leads.length };
   }

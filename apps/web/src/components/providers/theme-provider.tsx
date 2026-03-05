@@ -14,15 +14,30 @@ const ThemeContext = createContext<ThemeContextType>({
   toggleTheme: () => {},
 });
 
+/**
+ * Inline script that runs before paint to prevent FOUC.
+ * Reads the stored theme and sets the class on <html> immediately.
+ */
+const THEME_SCRIPT = `
+(function(){
+  try {
+    var t = localStorage.getItem("leadpulse-theme") || "dark";
+    var d = document.documentElement;
+    d.classList.remove("dark", "light");
+    d.classList.add(t);
+  } catch(e) {}
+})();
+`;
+
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [theme, setTheme] = useState<Theme>("dark");
 
   useEffect(() => {
     const stored = localStorage.getItem("leadpulse-theme") as Theme | null;
-    if (stored) {
+    if (stored && (stored === "dark" || stored === "light")) {
       setTheme(stored);
-      document.documentElement.classList.toggle("dark", stored === "dark");
-      document.documentElement.classList.toggle("light", stored === "light");
+      document.documentElement.classList.remove("dark", "light");
+      document.documentElement.classList.add(stored);
     }
   }, []);
 
@@ -30,12 +45,13 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     const next = theme === "dark" ? "light" : "dark";
     setTheme(next);
     localStorage.setItem("leadpulse-theme", next);
-    document.documentElement.classList.toggle("dark", next === "dark");
-    document.documentElement.classList.toggle("light", next === "light");
+    document.documentElement.classList.remove("dark", "light");
+    document.documentElement.classList.add(next);
   };
 
   return (
     <ThemeContext.Provider value={{ theme, toggleTheme }}>
+      <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
       {children}
     </ThemeContext.Provider>
   );

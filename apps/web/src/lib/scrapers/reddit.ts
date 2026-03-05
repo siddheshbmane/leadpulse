@@ -29,30 +29,71 @@ function buildQuery(query: SearchQuery): string {
   return parts.join(" ");
 }
 
-export class RedditScraper implements SourceScraper {
-  async scrape(query: SearchQuery, limit = 20): Promise<ScraperResult> {
-    const q = encodeURIComponent(buildQuery(query));
-    const url = `https://www.reddit.com/search.json?q=${q}&sort=new&t=month&limit=${Math.min(limit, 25)}`;
+async function fetchWithRetry(
+  url: string,
+  headers: Record<string, string>,
+  retries = 2
+): Promise<Response> {
+  for (let i = 0; i <= retries; i++) {
+    const response = await fetch(url, { headers });
 
-    const response = await fetch(url, {
-      headers: {
-        "User-Agent": "LeadPulse/1.0 (lead-discovery-platform)",
-        Accept: "application/json",
-      },
-    });
+    if (response.ok) return response;
 
-    if (!response.ok) {
-      throw new Error(`Reddit API returned ${response.status}`);
+    // Reddit rate limits: wait and retry
+    if (response.status === 429 && i < retries) {
+      const waitMs = 2000 * (i + 1);
+      await new Promise((resolve) => setTimeout(resolve, waitMs));
+      continue;
     }
 
-    const json: RedditSearchResponse = await response.json();
+    if (i === retries) {
+      throw new Error(`Reddit API returned ${response.status} after ${retries + 1} attempts`);
+    }
+  }
+
+  throw new Error("Reddit fetch exhausted retries");
+}
+
+export class RedditScraper implements SourceScraper {
+  async scrape(query: SearchQuery, limit = 20): Promise<ScraperResult> {
+    const q = buildQuery(query);
+    if (!q.trim()) {
+      return { leads: [], totalFound: 0 };
+    }
+
+    const url = `https://www.reddit.com/search.json?q=${encodeURIComponent(q)}&sort=new&t=month&limit=${Math.min(limit, 25)}`;
+
+    const response = await fetchWithRetry(url, {
+      "User-Agent": "LeadPulse:v1.0 (by /u/leadpulse-bot)",
+      Accept: "application/json",
+    });
+
+    const text = await response.text();
+    let json: RedditSearchResponse;
+
+    try {
+      json = JSON.parse(text);
+    } catch {
+      console.warn(
+        `[RedditScraper] Non-JSON response from Reddit. Preview: ${text.slice(0, 300)}`
+      );
+      throw new Error("Reddit returned non-JSON response (possible rate limit or block)");
+    }
+
+    if (!json?.data?.children) {
+      console.warn("[RedditScraper] Unexpected response structure:", JSON.stringify(json).slice(0, 300));
+      return { leads: [], totalFound: 0 };
+    }
+
     const leads: ScraperResult["leads"] = [];
 
     for (const child of json.data.children) {
       if (leads.length >= limit) break;
 
       const post = child.data;
-      if (!post.author || post.author === "[deleted]") continue;
+      if (!post?.author || post.author === "[deleted]" || post.author === "AutoModerator") {
+        continue;
+      }
 
       leads.push({
         externalId: post.id,
@@ -62,7 +103,7 @@ export class RedditScraper implements SourceScraper {
         title: post.subreddit,
         raw: {
           postTitle: post.title,
-          selftext: post.selftext?.slice(0, 2000),
+          selftext: post.selftext?.slice(0, 2000) || "",
           subreddit: post.subreddit,
           score: post.score,
           numComments: post.num_comments,

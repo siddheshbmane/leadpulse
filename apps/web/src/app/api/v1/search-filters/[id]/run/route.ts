@@ -42,11 +42,9 @@ export async function POST(
     const jobIds = jobs.map((j) => j.id);
 
     // Fire-and-forget: kick off processing without awaiting
-    const baseUrl =
-      process.env.NEXT_PUBLIC_APP_URL ||
-      process.env.VERCEL_URL
-        ? `https://${process.env.VERCEL_URL}`
-        : "http://localhost:3000";
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL
+      || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : null)
+      || "http://localhost:3000";
 
     fetch(`${baseUrl}/api/v1/jobs/process`, {
       method: "POST",

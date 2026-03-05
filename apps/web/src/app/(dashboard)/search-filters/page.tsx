@@ -56,13 +56,21 @@ export default function SearchFiltersPage() {
   const runFilter = useRunSearchFilter();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [runningFilterId, setRunningFilterId] = useState<string | null>(null);
 
   const filters = (data?.data ?? []) as unknown as SearchFilterData[];
 
   const handleRun = (id: string, name: string) => {
+    setRunningFilterId(id);
     runFilter.mutate(id, {
-      onSuccess: () => toast.success(`Scraper queued for "${name}"`),
-      onError: () => toast.error("Failed to queue scraper"),
+      onSuccess: () => {
+        toast.success(`Scraper queued for "${name}"`);
+        setRunningFilterId(null);
+      },
+      onError: () => {
+        toast.error("Failed to queue scraper");
+        setRunningFilterId(null);
+      },
     });
   };
 
@@ -233,9 +241,9 @@ export default function SearchFiltersPage() {
                     size="sm"
                     className="h-8 text-xs flex-1"
                     onClick={() => handleRun(filter.id, filter.name)}
-                    disabled={runFilter.isPending}
+                    disabled={runningFilterId === filter.id}
                   >
-                    {runFilter.isPending ? (
+                    {runningFilterId === filter.id ? (
                       <Loader2 size={14} className="mr-1 animate-spin" />
                     ) : (
                       <Play size={14} className="mr-1" />

@@ -142,8 +142,8 @@
   --color-success: oklch(0.723 0.191 149.579);
   --color-warning: oklch(0.795 0.184 86.047);
   --color-info: oklch(0.588 0.158 241.966);
-  --color-surface: oklch(0.17 0 0);
-  --color-surface-hover: oklch(0.215 0 0);
+  --color-surface: var(--card);
+  --color-surface-hover: var(--secondary);
 
   --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
 }

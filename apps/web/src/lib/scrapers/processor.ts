@@ -31,7 +31,13 @@ export async function processJob(jobId: string): Promise<void> {
     const query = (job.searchFilter.query || {}) as SearchQuery;
 
     // 2. Scrape
+    console.log(`[Processor] Starting ${job.source} scrape for job ${jobId}`, {
+      query,
+    });
     const result = await scraper.scrape(query, 20);
+    console.log(
+      `[Processor] ${job.source} scrape returned ${result.leads.length} leads for job ${jobId}`
+    );
 
     // 3. Enrich and upsert leads
     let leadsNew = 0;

@@ -81,11 +81,7 @@ export class GoogleMapsScraper implements SourceScraper {
     }
 
     const searchQuery = `${textQuery} business directory`;
-    const apiKey = process.env.SCRAPINGBEE_API_KEY;
-    const searchUrl = apiKey
-      ? `https://www.google.com/search?q=${encodeURIComponent(searchQuery)}&num=20`
-      : `https://html.duckduckgo.com/html/?q=${encodeURIComponent(searchQuery)}`;
-
+    const searchUrl = `https://html.duckduckgo.com/html/?q=${encodeURIComponent(searchQuery)}`;
     const html = await fetchHtml(searchUrl);
     const $ = cheerio.load(html);
     const leads: ScraperResult["leads"] = [];

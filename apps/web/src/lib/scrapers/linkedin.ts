@@ -41,14 +41,8 @@ function parseSnippet(text: string): { title?: string; companyName?: string } {
 }
 
 async function searchHtml(query: string): Promise<string> {
-  // Use Google search via ScrapingBee (if available) for best results
-  // Fall back to DuckDuckGo HTML if no proxy
-  const apiKey = process.env.SCRAPINGBEE_API_KEY;
-  if (apiKey) {
-    const googleUrl = `https://www.google.com/search?q=${encodeURIComponent(query)}&num=20`;
-    return fetchHtml(googleUrl);
-  }
-
+  // Always use DuckDuckGo HTML — ScrapingBee proxies it to avoid IP blocks
+  // (Google requires custom_google=True which costs 20x credits)
   const ddgUrl = `https://html.duckduckgo.com/html/?q=${encodeURIComponent(query)}`;
   return fetchHtml(ddgUrl);
 }

@@ -12,16 +12,25 @@ import {
   Download,
   ChevronLeft,
   ChevronRight,
-  X,
   ExternalLink,
   Loader2,
   Users,
+  MapPin,
+  Mail,
+  Phone,
+  Globe,
+  Linkedin,
+  Briefcase,
+  Calendar,
+  Target,
+  Hash,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Separator } from "@/components/ui/separator";
 import {
   Sheet,
   SheetContent,
@@ -100,7 +109,19 @@ export default function LeadsPage() {
 
   const handleStatusChange = (leadId: string, newStatus: string) => {
     updateLead.mutate(
-      { id: leadId, data: { status: newStatus as "NEW" | "ENRICHED" | "QUALIFIED" | "CONTACTED" | "WON" | "LOST" | "IGNORED" } },
+      {
+        id: leadId,
+        data: {
+          status: newStatus as
+            | "NEW"
+            | "ENRICHED"
+            | "QUALIFIED"
+            | "CONTACTED"
+            | "WON"
+            | "LOST"
+            | "IGNORED",
+        },
+      },
       {
         onSuccess: () => toast.success("Status updated"),
         onError: () => toast.error("Failed to update status"),
@@ -281,14 +302,14 @@ export default function LeadsPage() {
                     </td>
                     <td className="px-4 py-3">
                       <span className="text-sm font-mono text-muted-foreground">
-                        {lead.score ? Number(lead.score).toFixed(0) : "—"}
+                        {lead.score ? Number(lead.score).toFixed(0) : "---"}
                       </span>
                     </td>
                     <td className="px-4 py-3">
                       <span className="text-sm text-muted-foreground">
                         {[lead.city, lead.country]
                           .filter(Boolean)
-                          .join(", ") || "—"}
+                          .join(", ") || "---"}
                       </span>
                     </td>
                     <td className="px-4 py-3">
@@ -374,25 +395,64 @@ export default function LeadsPage() {
         </>
       )}
 
-      {/* Lead Detail Drawer */}
+      {/* Lead Detail Drawer — Properly Aligned */}
       <Sheet
         open={!!selectedLead}
         onOpenChange={(open) => !open && setSelectedLead(null)}
       >
-        <SheetContent className="w-full sm:max-w-md overflow-y-auto">
+        <SheetContent className="w-full sm:max-w-lg overflow-y-auto p-0">
           {selectedLead && (
-            <>
-              <SheetHeader>
-                <SheetTitle className="text-left">
-                  {selectedLead.personName || "Unknown Lead"}
-                </SheetTitle>
-              </SheetHeader>
+            <div className="flex flex-col h-full">
+              {/* Drawer Header */}
+              <div className="px-6 pt-6 pb-4 border-b border-border">
+                <SheetHeader className="space-y-0">
+                  <SheetTitle className="text-left text-lg">
+                    {selectedLead.personName || "Unknown Lead"}
+                  </SheetTitle>
+                </SheetHeader>
+                <div className="flex items-center gap-2 mt-1.5">
+                  {selectedLead.companyName && (
+                    <span className="text-sm text-muted-foreground">
+                      {selectedLead.companyName}
+                    </span>
+                  )}
+                  {selectedLead.title && (
+                    <>
+                      <span className="text-muted-foreground/40">·</span>
+                      <span className="text-sm text-muted-foreground">
+                        {selectedLead.title}
+                      </span>
+                    </>
+                  )}
+                </div>
+                <div className="flex items-center gap-2 mt-3">
+                  <Badge
+                    variant="secondary"
+                    className={cn(
+                      "text-xs",
+                      STATUS_COLORS[selectedLead.status] ??
+                        STATUS_COLORS.IGNORED
+                    )}
+                  >
+                    {selectedLead.status}
+                  </Badge>
+                  <Badge variant="outline" className="text-xs capitalize">
+                    {selectedLead.source.replace("_", " ")}
+                  </Badge>
+                  {selectedLead.score && (
+                    <Badge variant="outline" className="text-xs font-mono">
+                      Score: {Number(selectedLead.score).toFixed(0)}
+                    </Badge>
+                  )}
+                </div>
+              </div>
 
-              <div className="mt-6 space-y-6">
-                {/* Status */}
+              {/* Drawer Body */}
+              <div className="flex-1 overflow-y-auto px-6 py-5 space-y-5">
+                {/* Status Selector */}
                 <div>
-                  <label className="text-xs text-muted-foreground uppercase tracking-wider font-medium">
-                    Status
+                  <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider block mb-1.5">
+                    Update Status
                   </label>
                   <Select
                     value={selectedLead.status}
@@ -401,7 +461,7 @@ export default function LeadsPage() {
                       setSelectedLead({ ...selectedLead, status: v });
                     }}
                   >
-                    <SelectTrigger className="mt-1">
+                    <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -414,105 +474,198 @@ export default function LeadsPage() {
                   </Select>
                 </div>
 
-                {/* Info Grid */}
-                <div className="space-y-3">
-                  {[
-                    { label: "Company", value: selectedLead.companyName },
-                    { label: "Title", value: selectedLead.title },
-                    { label: "Email", value: selectedLead.email },
-                    { label: "Phone", value: selectedLead.phone },
-                    {
-                      label: "Location",
-                      value: [selectedLead.city, selectedLead.country]
-                        .filter(Boolean)
-                        .join(", "),
-                    },
-                    { label: "Source", value: selectedLead.source },
-                    {
-                      label: "Score",
-                      value: selectedLead.score
-                        ? Number(selectedLead.score).toFixed(1)
-                        : null,
-                    },
-                    {
-                      label: "Intent Signal",
-                      value: selectedLead.intentSignal,
-                    },
-                    {
-                      label: "Discovered",
-                      value: new Date(
-                        selectedLead.discoveredAt
-                      ).toLocaleString(),
-                    },
-                  ].map(
-                    (item) =>
-                      item.value && (
-                        <div key={item.label}>
-                          <div className="text-xs text-muted-foreground uppercase tracking-wider">
-                            {item.label}
-                          </div>
-                          <div className="text-sm text-foreground mt-0.5">
-                            {item.value}
-                          </div>
-                        </div>
-                      )
-                  )}
+                <Separator />
+
+                {/* Contact Information */}
+                <div>
+                  <h4 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-3">
+                    Contact Information
+                  </h4>
+                  <div className="space-y-2.5">
+                    {selectedLead.email && (
+                      <div className="flex items-center gap-3">
+                        <Mail
+                          size={14}
+                          className="text-muted-foreground shrink-0"
+                        />
+                        <a
+                          href={`mailto:${selectedLead.email}`}
+                          className="text-sm text-primary hover:underline truncate"
+                        >
+                          {selectedLead.email}
+                        </a>
+                      </div>
+                    )}
+                    {selectedLead.phone && (
+                      <div className="flex items-center gap-3">
+                        <Phone
+                          size={14}
+                          className="text-muted-foreground shrink-0"
+                        />
+                        <a
+                          href={`tel:${selectedLead.phone}`}
+                          className="text-sm text-foreground"
+                        >
+                          {selectedLead.phone}
+                        </a>
+                      </div>
+                    )}
+                    {(selectedLead.city || selectedLead.country) && (
+                      <div className="flex items-center gap-3">
+                        <MapPin
+                          size={14}
+                          className="text-muted-foreground shrink-0"
+                        />
+                        <span className="text-sm text-foreground">
+                          {[selectedLead.city, selectedLead.country]
+                            .filter(Boolean)
+                            .join(", ")}
+                        </span>
+                      </div>
+                    )}
+                    {selectedLead.website && (
+                      <div className="flex items-center gap-3">
+                        <Globe
+                          size={14}
+                          className="text-muted-foreground shrink-0"
+                        />
+                        <a
+                          href={selectedLead.website}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-sm text-primary hover:underline truncate"
+                        >
+                          {selectedLead.website}
+                        </a>
+                      </div>
+                    )}
+                    {selectedLead.linkedinUrl && (
+                      <div className="flex items-center gap-3">
+                        <Linkedin
+                          size={14}
+                          className="text-muted-foreground shrink-0"
+                        />
+                        <a
+                          href={selectedLead.linkedinUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-sm text-primary hover:underline truncate"
+                        >
+                          LinkedIn Profile
+                        </a>
+                      </div>
+                    )}
+                  </div>
                 </div>
+
+                <Separator />
+
+                {/* Lead Details */}
+                <div>
+                  <h4 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-3">
+                    Details
+                  </h4>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-0.5">
+                        <Briefcase size={12} />
+                        Company
+                      </div>
+                      <div className="text-sm text-foreground">
+                        {selectedLead.companyName || "---"}
+                      </div>
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-0.5">
+                        <Hash size={12} />
+                        Source
+                      </div>
+                      <div className="text-sm text-foreground capitalize">
+                        {selectedLead.source.replace("_", " ")}
+                      </div>
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-0.5">
+                        <Target size={12} />
+                        Score
+                      </div>
+                      <div className="text-sm text-foreground font-mono">
+                        {selectedLead.score
+                          ? Number(selectedLead.score).toFixed(1)
+                          : "---"}
+                      </div>
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-0.5">
+                        <Calendar size={12} />
+                        Discovered
+                      </div>
+                      <div className="text-sm text-foreground">
+                        {new Date(
+                          selectedLead.discoveredAt
+                        ).toLocaleDateString()}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Intent Signal */}
+                {selectedLead.intentSignal && (
+                  <>
+                    <Separator />
+                    <div>
+                      <h4 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">
+                        Intent Signal
+                      </h4>
+                      <div className="rounded-lg bg-primary/5 border border-primary/10 px-3 py-2.5">
+                        <p className="text-sm text-foreground">
+                          {selectedLead.intentSignal}
+                        </p>
+                      </div>
+                    </div>
+                  </>
+                )}
 
                 {/* Tags */}
                 {selectedLead.tags && selectedLead.tags.length > 0 && (
-                  <div>
-                    <div className="text-xs text-muted-foreground uppercase tracking-wider mb-1.5">
-                      Tags
+                  <>
+                    <Separator />
+                    <div>
+                      <h4 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">
+                        Tags
+                      </h4>
+                      <div className="flex flex-wrap gap-1.5">
+                        {selectedLead.tags.map((tag) => (
+                          <Badge
+                            key={tag}
+                            variant="secondary"
+                            className="text-xs"
+                          >
+                            {tag}
+                          </Badge>
+                        ))}
+                      </div>
                     </div>
-                    <div className="flex flex-wrap gap-1.5">
-                      {selectedLead.tags.map((tag) => (
-                        <Badge key={tag} variant="secondary" className="text-xs">
-                          {tag}
-                        </Badge>
-                      ))}
-                    </div>
-                  </div>
+                  </>
                 )}
 
-                {/* Links */}
-                <div className="flex flex-col gap-2">
-                  {selectedLead.linkedinUrl && (
-                    <a
-                      href={selectedLead.linkedinUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1.5 text-sm text-primary hover:underline"
-                    >
-                      <ExternalLink size={14} />
-                      LinkedIn Profile
-                    </a>
-                  )}
-                  {selectedLead.website && (
-                    <a
-                      href={selectedLead.website}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1.5 text-sm text-primary hover:underline"
-                    >
-                      <ExternalLink size={14} />
-                      Website
-                    </a>
-                  )}
-                  {selectedLead.sourceUrl && (
+                {/* Source Link */}
+                {selectedLead.sourceUrl && (
+                  <>
+                    <Separator />
                     <a
                       href={selectedLead.sourceUrl}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1.5 text-sm text-primary hover:underline"
+                      className="inline-flex items-center gap-2 text-sm text-primary hover:underline"
                     >
                       <ExternalLink size={14} />
-                      Source URL
+                      View Original Source
                     </a>
-                  )}
-                </div>
+                  </>
+                )}
               </div>
-            </>
+            </div>
           )}
         </SheetContent>
       </Sheet>

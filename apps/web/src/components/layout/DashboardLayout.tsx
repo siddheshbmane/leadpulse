@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { Zap, LogOut, Bell, Menu, X, ChevronRight } from "lucide-react";
+import { Zap, LogOut, Bell, Menu, X, ChevronRight, Sun, Moon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -13,6 +13,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { useTheme } from "@/components/providers/theme-provider";
 
 export default function DashboardLayout({
   children,
@@ -21,6 +22,7 @@ export default function DashboardLayout({
 }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const pathname = usePathname();
+  const { theme, toggleTheme } = useTheme();
 
   const currentPage = navigationItems.find((item) =>
     pathname.startsWith(item.href)
@@ -120,6 +122,21 @@ export default function DashboardLayout({
               </span>
             </div>
             <div className="flex items-center gap-2">
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={toggleTheme}
+                  >
+                    {theme === "dark" ? <Sun size={16} /> : <Moon size={16} />}
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  {theme === "dark" ? "Light mode" : "Dark mode"}
+                </TooltipContent>
+              </Tooltip>
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button

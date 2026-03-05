@@ -88,12 +88,9 @@ export class LinkedInScraper implements SourceScraper {
 
       seenSlugs.add(slug);
 
-      const linkText = $(el).text().trim();
-      // Walk up to find surrounding text for context
-      const container = $(el).closest("div, li, td");
-      const snippetText = container.length
-        ? container.text().replace(linkText, "").trim()
-        : "";
+      const rawLinkText = $(el).text().trim();
+      // Collapse whitespace from DDG HTML
+      const linkText = rawLinkText.replace(/\s+/g, " ").trim();
 
       // Extract name from link text: "First Last - Title | LinkedIn"
       let personName: string | undefined;
@@ -106,8 +103,9 @@ export class LinkedInScraper implements SourceScraper {
         if (personName.length < 2) personName = undefined;
       }
 
+      // Use name parts (from link text like "Name - Title at Company | LinkedIn")
       const { title, companyName } = parseSnippet(
-        snippetText || (nameParts.length > 1 ? nameParts[1] : "")
+        nameParts.length > 1 ? nameParts.slice(1).join(" - ") : ""
       );
 
       if (!personName) return;
@@ -120,7 +118,7 @@ export class LinkedInScraper implements SourceScraper {
         personName,
         title,
         companyName,
-        raw: { linkText, snippetText: snippetText.slice(0, 500), href },
+        raw: { linkText, href },
       });
     });
 

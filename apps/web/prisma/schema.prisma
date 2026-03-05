@@ -1,6 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -9,6 +6,8 @@ datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
+
+// --- ENUMS ---
 
 enum LeadStatus {
   NEW
@@ -20,102 +19,301 @@ enum LeadStatus {
   IGNORED
 }
 
+enum JobStatus {
+  PENDING
+  RUNNING
+  SUCCESS
+  ERROR
+  CANCELLED
+}
+
+enum OrgRole {
+  OWNER
+  ADMIN
+  MEMBER
+  VIEWER
+}
+
+enum PlanType {
+  FREE
+  STARTER
+  PRO
+  ENTERPRISE
+}
+
+// --- AUTH ---
+
 model User {
-  id            String         @id @default(uuid())
-  email         String?        @unique
-  fullName      String?
-  avatarUrl     String?
-  role          String         @default("user")
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
-  
-  searchFilters SearchFilter[]
-  leads         Lead[]
+  id        String   @id @default(cuid())
+  email     String   @unique
+  fullName  String?
+  avatarUrl String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  sessions    Session[]
+  magicLinks  MagicLink[]
+  memberships OrganizationMember[]
 
   @@map("users")
 }
 
-model SearchFilter {
-  id               String    @id @default(uuid())
-  ownerId          String
-  owner            User      @relation(fields: [ownerId], references: [id], onDelete: Cascade)
-  
-  name             String
-  description      String?
-  
-  // The target definition (keep flexible so product can evolve)
-  query            Json      @default("{}")
-  
-  // Scheduling / agent control
-  isActive         Boolean   @default(true)
-  runEveryMinutes  Int?
-  lastRunAt        DateTime?
-  nextRunAt        DateTime?
-  
-  // Operational metadata
-  lastRunStatus    String?   // success|error|partial
-  lastRunError     String?
-  
-  createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
-  
-  leads            Lead[]
+model Session {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  token     String   @unique
+  expiresAt DateTime
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime @default(now())
 
-  @@index([ownerId])
+  @@index([userId])
+  @@index([token])
+  @@map("sessions")
+}
+
+model MagicLink {
+  id        String    @id @default(cuid())
+  email     String
+  token     String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  userId    String?
+  user      User?     @relation(fields: [userId], references: [id])
+  createdAt DateTime  @default(now())
+
+  @@index([token])
+  @@index([email])
+  @@map("magic_links")
+}
+
+// --- MULTI-TENANCY ---
+
+model Organization {
+  id      String   @id @default(cuid())
+  name    String
+  slug    String   @unique
+  logoUrl String?
+  plan    PlanType @default(FREE)
+  credits Int      @default(100)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  members       OrganizationMember[]
+  teams         Team[]
+  searchFilters SearchFilter[]
+  leads         Lead[]
+  jobs          Job[]
+  usageRecords  UsageRecord[]
+  payments      Payment[]
+
+  @@map("organizations")
+}
+
+model OrganizationMember {
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  userId         String
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role           OrgRole      @default(MEMBER)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@unique([organizationId, userId])
+  @@index([userId])
+  @@map("organization_members")
+}
+
+model Team {
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  name           String
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  members TeamMember[]
+
+  @@index([organizationId])
+  @@map("teams")
+}
+
+model TeamMember {
+  id        String   @id @default(cuid())
+  teamId    String
+  team      Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  userId    String
+  createdAt DateTime @default(now())
+
+  @@unique([teamId, userId])
+  @@map("team_members")
+}
+
+// --- CORE: SEARCH FILTERS ---
+
+model SearchFilter {
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  createdById    String
+
+  name        String
+  description String?
+
+  sources String[] @default([])
+  query   Json     @default("{}")
+
+  isActive        Boolean   @default(true)
+  runEveryMinutes Int?
+  lastRunAt       DateTime?
+  nextRunAt       DateTime?
+
+  lastRunStatus   String?
+  lastRunError    String?
+  totalRuns       Int @default(0)
+  totalLeadsFound Int @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  leads Lead[]
+  jobs  Job[]
+
+  @@index([organizationId])
   @@index([isActive, nextRunAt])
   @@map("search_filters")
 }
 
-model Lead {
-  id              String     @id @default(uuid())
-  ownerId         String
-  owner           User       @relation(fields: [ownerId], references: [id], onDelete: Cascade)
-  
-  searchFilterId  String?
-  searchFilter    SearchFilter? @relation(fields: [searchFilterId], references: [id], onDelete: SetNull)
-  
-  // Identity / dedupe
-  externalId      String?    // id from platform (place_id, profile_id, etc.)
-  source          String     // e.g. google_maps|linkedin|website|reddit
-  sourceUrl       String?
-  
-  // Company / person fields
-  companyName     String?
-  personName      String?
-  title           String?
-  
-  email           String?
-  phone           String?
-  website         String?
-  linkedinUrl     String?
-  
-  country         String?
-  region          String?
-  city            String?
-  
-  // Lead lifecycle
-  status          LeadStatus @default(NEW)
-  score           Decimal?   @db.Decimal(5, 2)
-  
-  tags            String[]   @default([])
-  
-  // Raw + enrichment payloads
-  raw             Json       @default("{}")
-  enrichment      Json       @default("{}")
-  
-  discoveredAt    DateTime   @default(now())
-  createdAt       DateTime   @default(now())
-  updatedAt       DateTime   @updatedAt
+// --- CORE: LEADS ---
 
-  @@index([ownerId])
+model Lead {
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  searchFilterId String?
+  searchFilter   SearchFilter? @relation(fields: [searchFilterId], references: [id], onDelete: SetNull)
+
+  externalId String?
+  source     String
+  sourceUrl  String?
+
+  companyName String?
+  personName  String?
+  title       String?
+
+  email       String?
+  phone       String?
+  website     String?
+  linkedinUrl String?
+
+  country String?
+  region  String?
+  city    String?
+
+  status       LeadStatus @default(NEW)
+  score        Decimal?   @db.Decimal(5, 2)
+  intentSignal String?
+  tags         String[]   @default([])
+
+  raw        Json @default("{}")
+  enrichment Json @default("{}")
+
+  discoveredAt DateTime @default(now())
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  events LeadEvent[]
+
+  @@index([organizationId])
   @@index([searchFilterId])
-  @@index([ownerId, status])
-  @@index([ownerId, email])
-  @@index([ownerId, source, externalId])
-  
-  // Dedupe constraints
-  @@unique([ownerId, email], name: "uq_leads_owner_email")
-  @@unique([ownerId, source, externalId], name: "uq_leads_owner_source_external")
-  
+  @@index([organizationId, status])
+  @@index([organizationId, email])
+  @@index([organizationId, source, externalId])
+  @@unique([organizationId, email], name: "uq_leads_org_email")
+  @@unique([organizationId, source, externalId], name: "uq_leads_org_source_external")
   @@map("leads")
+}
+
+model LeadEvent {
+  id        String   @id @default(cuid())
+  leadId    String
+  lead      Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  type      String
+  data      Json     @default("{}")
+  createdBy String?
+  createdAt DateTime @default(now())
+
+  @@index([leadId])
+  @@map("lead_events")
+}
+
+// --- JOBS / QUEUE ---
+
+model Job {
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  searchFilterId String
+  searchFilter   SearchFilter @relation(fields: [searchFilterId], references: [id], onDelete: Cascade)
+
+  status      JobStatus @default(PENDING)
+  source      String
+  startedAt   DateTime?
+  completedAt DateTime?
+  error       String?
+
+  leadsFound  Int @default(0)
+  leadsNew    Int @default(0)
+  creditsUsed Int @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([organizationId])
+  @@index([status])
+  @@index([searchFilterId])
+  @@map("jobs")
+}
+
+// --- BILLING ---
+
+model UsageRecord {
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  type        String
+  credits     Int
+  description String?
+  metadata    Json @default("{}")
+
+  createdAt DateTime @default(now())
+
+  @@index([organizationId])
+  @@index([organizationId, createdAt])
+  @@map("usage_records")
+}
+
+model Payment {
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  razorpayOrderId   String? @unique
+  razorpayPaymentId String? @unique
+
+  amount   Int
+  currency String @default("INR")
+  status   String
+  credits  Int
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([organizationId])
+  @@map("payments")
 }

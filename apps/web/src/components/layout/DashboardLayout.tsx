@@ -1,21 +1,18 @@
 "use client";
 
 import React, { useState } from "react";
-import { 
-  LayoutDashboard, 
-  Users, 
-  Search, 
-  Settings, 
-  Zap, 
-  LogOut,
-  Bell,
-  Activity,
-  Menu,
-  X
-} from "lucide-react";
+import { Zap, LogOut, Bell, Menu, X, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { navigationItems } from "@/config/navigation";
+import { Button } from "@/components/ui/button";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 export default function DashboardLayout({
   children,
@@ -25,150 +22,124 @@ export default function DashboardLayout({
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const pathname = usePathname();
 
-  const handleSignOut = () => {
-    console.log("Signing out...");
-    alert("Sign out functionality coming soon!");
-  };
+  const currentPage = navigationItems.find((item) =>
+    pathname.startsWith(item.href)
+  );
 
   return (
-    <div className="flex h-screen bg-[#0a0a0a] text-zinc-400 font-sans overflow-hidden">
-      {/* Mobile Menu Button */}
-      <button
-        onClick={() => setSidebarOpen(!sidebarOpen)}
-        className="fixed top-4 left-4 z-50 p-2 rounded-lg bg-zinc-900 text-white lg:hidden hover:bg-zinc-800 transition-colors"
-        aria-label="Toggle menu"
-      >
-        {sidebarOpen ? <X size={24} /> : <Menu size={24} />}
-      </button>
+    <TooltipProvider>
+      <div className="flex h-screen bg-background text-foreground font-sans overflow-hidden">
+        {/* Mobile Menu Button */}
+        <button
+          onClick={() => setSidebarOpen(!sidebarOpen)}
+          className="fixed top-4 left-4 z-50 p-2 rounded-lg bg-secondary text-foreground lg:hidden hover:bg-secondary/80 transition-colors"
+          aria-label="Toggle menu"
+        >
+          {sidebarOpen ? <X size={20} /> : <Menu size={20} />}
+        </button>
 
-      {/* Sidebar Overlay for Mobile */}
-      {sidebarOpen && (
-        <div
-          className="fixed inset-0 bg-black/50 z-30 lg:hidden"
-          onClick={() => setSidebarOpen(false)}
-        />
-      )}
-
-      {/* Sidebar */}
-      <aside
-        className={cn(
-          "w-64 border-r border-zinc-800 flex flex-col bg-[#0a0a0a] transition-transform duration-300 ease-in-out z-40",
-          "fixed lg:static h-full",
-          sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
+        {/* Sidebar Overlay for Mobile */}
+        {sidebarOpen && (
+          <div
+            className="fixed inset-0 bg-black/60 z-30 lg:hidden"
+            onClick={() => setSidebarOpen(false)}
+          />
         )}
-      >
-        <div className="p-6 flex items-center gap-3 text-white">
-          <div className="w-8 h-8 bg-[#00ff9d] rounded-lg flex items-center justify-center">
-            <Zap className="w-5 h-5 text-black" fill="currentColor" />
-          </div>
-          <span className="font-bold text-xl tracking-tight">LEADPULSE</span>
-        </div>
 
-        <nav className="flex-1 px-4 space-y-2 mt-4">
-          <NavItem 
-            href="/"
-            icon={<LayoutDashboard size={20} />} 
-            label="Dashboard" 
-            active={pathname === "/"}
-            onClick={() => setSidebarOpen(false)}
-          />
-          <NavItem 
-            href="/leads"
-            icon={<Users size={20} />} 
-            label="Leads"
-            active={pathname === "/leads"}
-            onClick={() => setSidebarOpen(false)}
-          />
-          <NavItem 
-            href="/search-filters"
-            icon={<Search size={20} />} 
-            label="Search Filters"
-            active={pathname === "/search-filters"}
-            onClick={() => setSidebarOpen(false)}
-          />
-          <NavItem 
-            href="/intelligence"
-            icon={<Activity size={20} />} 
-            label="Intelligence"
-            active={pathname === "/intelligence"}
-            onClick={() => setSidebarOpen(false)}
-          />
-          <NavItem 
-            href="/settings"
-            icon={<Settings size={20} />} 
-            label="Settings"
-            active={pathname === "/settings"}
-            onClick={() => setSidebarOpen(false)}
-          />
-        </nav>
-
-        <div className="p-4 border-t border-zinc-800">
-          <button 
-            onClick={handleSignOut}
-            className="flex items-center gap-3 w-full px-4 py-3 rounded-lg hover:bg-zinc-900 transition-colors text-zinc-500"
-          >
-            <LogOut size={20} />
-            <span>Sign Out</span>
-          </button>
-        </div>
-      </aside>
-
-      {/* Main Content */}
-      <div className="flex-1 overflow-y-auto flex flex-col w-full lg:w-auto">
-        {/* Header */}
-        <header className="h-16 border-b border-zinc-800 flex items-center justify-between px-4 lg:px-8 bg-[#0a0a0a]/50 backdrop-blur-md sticky top-0 z-10">
-          <div className="flex items-center gap-2 ml-12 lg:ml-0">
-            <span className="text-xs lg:text-sm font-medium text-zinc-500 uppercase tracking-widest">Main Dashboard</span>
-            <span className="text-zinc-700">/</span>
-            <span className="text-xs lg:text-sm font-medium text-white uppercase tracking-widest">
-              {pathname === "/" ? "Overview" : pathname.substring(1).charAt(0).toUpperCase() + pathname.substring(2)}
+        {/* Sidebar */}
+        <aside
+          className={cn(
+            "w-60 border-r border-border flex flex-col bg-background transition-transform duration-300 ease-in-out z-40",
+            "fixed lg:static h-full",
+            sidebarOpen
+              ? "translate-x-0"
+              : "-translate-x-full lg:translate-x-0"
+          )}
+        >
+          {/* Logo */}
+          <div className="h-14 px-5 flex items-center gap-2.5 border-b border-border">
+            <div className="w-7 h-7 bg-primary rounded-md flex items-center justify-center">
+              <Zap className="w-4 h-4 text-primary-foreground" />
+            </div>
+            <span className="font-semibold text-base tracking-tight text-foreground">
+              LeadPulse
             </span>
           </div>
-          <div className="flex items-center gap-4">
-            <button className="relative p-2 rounded-full hover:bg-zinc-900 text-zinc-400 transition-colors">
-              <Bell size={20} />
-              <span className="absolute top-2 right-2 w-2 h-2 bg-[#00ff9d] rounded-full"></span>
-            </button>
-            <div className="w-8 h-8 rounded-full bg-zinc-800 border border-zinc-700"></div>
+
+          {/* Navigation */}
+          <nav className="flex-1 px-3 py-3 space-y-0.5">
+            {navigationItems.map((item) => {
+              const isActive = pathname.startsWith(item.href);
+              const Icon = item.icon;
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  onClick={() => setSidebarOpen(false)}
+                  className={cn(
+                    "flex items-center gap-2.5 w-full px-3 py-2 rounded-md transition-colors text-sm",
+                    isActive
+                      ? "bg-primary/10 text-primary font-medium"
+                      : "text-muted-foreground hover:bg-secondary hover:text-foreground"
+                  )}
+                >
+                  <Icon size={16} strokeWidth={isActive ? 2 : 1.5} />
+                  <span>{item.label}</span>
+                </Link>
+              );
+            })}
+          </nav>
+
+          {/* Footer */}
+          <div className="p-3 border-t border-border">
+            <div className="flex items-center gap-2.5 px-3 py-2 rounded-md">
+              <div className="w-7 h-7 rounded-full bg-secondary flex items-center justify-center text-xs font-medium text-muted-foreground">
+                A
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-foreground truncate">
+                  Admin
+                </p>
+                <p className="text-xs text-muted-foreground truncate">
+                  Internal
+                </p>
+              </div>
+            </div>
           </div>
-        </header>
+        </aside>
 
-        <main className="flex-1">
-          {children}
-        </main>
+        {/* Main Content */}
+        <div className="flex-1 overflow-y-auto flex flex-col w-full lg:w-auto">
+          {/* Header */}
+          <header className="h-14 border-b border-border flex items-center justify-between px-4 lg:px-6 bg-background/80 backdrop-blur-sm sticky top-0 z-10">
+            <div className="flex items-center gap-1.5 ml-10 lg:ml-0 text-sm">
+              <span className="text-muted-foreground">LeadPulse</span>
+              <ChevronRight size={14} className="text-muted-foreground/50" />
+              <span className="text-foreground font-medium">
+                {currentPage?.label ?? "Overview"}
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="relative h-8 w-8"
+                  >
+                    <Bell size={16} />
+                    <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 bg-primary rounded-full" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Notifications</TooltipContent>
+              </Tooltip>
+              <div className="w-7 h-7 rounded-full bg-secondary border border-border" />
+            </div>
+          </header>
+
+          <main className="flex-1">{children}</main>
+        </div>
       </div>
-    </div>
-  );
-}
-
-function NavItem({ 
-  href,
-  icon, 
-  label, 
-  active = false,
-  onClick
-}: { 
-  href: string;
-  icon: React.ReactNode;
-  label: string;
-  active?: boolean;
-  onClick?: () => void;
-}) {
-  return (
-    <Link 
-      href={href}
-      onClick={onClick}
-      className={cn(
-        "flex items-center gap-3 w-full px-4 py-3 rounded-lg transition-all duration-200 group",
-        active 
-          ? "bg-[#00ff9d]/10 text-[#00ff9d] border border-[#00ff9d]/20" 
-          : "text-zinc-500 hover:bg-zinc-900 hover:text-zinc-300"
-      )}
-    >
-      <span className={cn(active ? "text-[#00ff9d]" : "group-hover:text-zinc-300")}>
-        {icon}
-      </span>
-      <span className="font-medium">{label}</span>
-    </Link>
+    </TooltipProvider>
   );
 }

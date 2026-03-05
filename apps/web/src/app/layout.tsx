@@ -1,10 +1,23 @@
 import "./globals.css";
 import type { Metadata } from "next";
-import DashboardLayout from "@/components/layout/DashboardLayout";
+import { Inter, JetBrains_Mono } from "next/font/google";
+import { Toaster } from "sonner";
+import { QueryProvider } from "@/components/providers/query-provider";
+
+const inter = Inter({
+  subsets: ["latin"],
+  variable: "--font-sans",
+});
+
+const jetbrainsMono = JetBrains_Mono({
+  subsets: ["latin"],
+  variable: "--font-mono",
+});
 
 export const metadata: Metadata = {
-  title: "LeadPulse | Dashboard",
-  description: "Real-time intent signals and lead tracking.",
+  title: "LeadPulse | Lead Intent Discovery",
+  description:
+    "AI-powered lead-intent discovery platform. Find high-intent prospects across LinkedIn, Google Maps, and Reddit.",
 };
 
 export default function RootLayout({
@@ -13,11 +26,17 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
-      <body>
-        <DashboardLayout>
+    <html lang="en" className="dark">
+      <body
+        className={`${inter.variable} ${jetbrainsMono.variable} font-sans`}
+      >
+        <QueryProvider>
           {children}
-        </DashboardLayout>
+        </QueryProvider>
+        <Toaster
+          theme="dark"
+          position="bottom-right"
+        />
       </body>
     </html>
   );

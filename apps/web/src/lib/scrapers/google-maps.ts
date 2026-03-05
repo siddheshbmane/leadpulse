@@ -1,5 +1,6 @@
 import * as cheerio from "cheerio";
 import type { SearchQuery, ScraperResult, SourceScraper } from "./types";
+import { fetchHtml } from "./fetch-html";
 
 function hashCode(str: string): string {
   let hash = 0;
@@ -80,24 +81,12 @@ export class GoogleMapsScraper implements SourceScraper {
     }
 
     const searchQuery = `${textQuery} business directory`;
-    const url = `https://html.duckduckgo.com/html/?q=${encodeURIComponent(searchQuery)}`;
+    const apiKey = process.env.SCRAPINGBEE_API_KEY;
+    const searchUrl = apiKey
+      ? `https://www.google.com/search?q=${encodeURIComponent(searchQuery)}&num=20`
+      : `https://html.duckduckgo.com/html/?q=${encodeURIComponent(searchQuery)}`;
 
-    const response = await fetch(url, {
-      headers: {
-        "User-Agent":
-          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
-        Accept:
-          "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-        "Accept-Language": "en-US,en;q=0.9",
-      },
-      redirect: "follow",
-    });
-
-    if (!response.ok) {
-      throw new Error(`DuckDuckGo returned ${response.status}`);
-    }
-
-    const html = await response.text();
+    const html = await fetchHtml(searchUrl);
     const $ = cheerio.load(html);
     const leads: ScraperResult["leads"] = [];
     const seenNames = new Set<string>();

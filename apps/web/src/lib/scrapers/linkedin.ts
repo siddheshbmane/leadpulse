@@ -1,5 +1,6 @@
 import * as cheerio from "cheerio";
 import type { SearchQuery, ScraperResult, SourceScraper } from "./types";
+import { fetchHtml } from "./fetch-html";
 
 function buildQuery(query: SearchQuery): string {
   const parts = ["site:linkedin.com/in/"];
@@ -39,51 +40,49 @@ function parseSnippet(text: string): { title?: string; companyName?: string } {
   return {};
 }
 
-async function searchDuckDuckGoHtml(query: string): Promise<string> {
-  // Try DuckDuckGo HTML version (more reliable than lite from servers)
-  const url = `https://html.duckduckgo.com/html/?q=${encodeURIComponent(query)}`;
-
-  const response = await fetch(url, {
-    headers: {
-      "User-Agent":
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
-      Accept:
-        "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-      "Accept-Language": "en-US,en;q=0.9",
-    },
-    redirect: "follow",
-  });
-
-  if (!response.ok) {
-    throw new Error(`DuckDuckGo returned ${response.status}`);
+async function searchHtml(query: string): Promise<string> {
+  // Use Google search via ScrapingBee (if available) for best results
+  // Fall back to DuckDuckGo HTML if no proxy
+  const apiKey = process.env.SCRAPINGBEE_API_KEY;
+  if (apiKey) {
+    const googleUrl = `https://www.google.com/search?q=${encodeURIComponent(query)}&num=20`;
+    return fetchHtml(googleUrl);
   }
 
-  return response.text();
+  const ddgUrl = `https://html.duckduckgo.com/html/?q=${encodeURIComponent(query)}`;
+  return fetchHtml(ddgUrl);
 }
 
 export class LinkedInScraper implements SourceScraper {
   async scrape(query: SearchQuery, limit = 20): Promise<ScraperResult> {
     const searchQuery = buildQuery(query);
-    const html = await searchDuckDuckGoHtml(searchQuery);
+    console.log(`[LinkedInScraper] Searching: ${searchQuery}`);
+
+    const html = await searchHtml(searchQuery);
     const $ = cheerio.load(html);
     const leads: ScraperResult["leads"] = [];
     const seenSlugs = new Set<string>();
 
-    // DuckDuckGo HTML results: each result is in a div.result
-    // The link is in a.result__a, snippet in a.result__snippet
-    $(".result").each((_, resultEl) => {
+    // Strategy 1: Find all LinkedIn profile links regardless of page structure
+    // This works for both Google and DuckDuckGo results
+    $("a").each((_, el) => {
       if (leads.length >= limit) return false;
 
-      const linkEl = $(resultEl).find("a.result__a");
-      const snippetEl = $(resultEl).find("a.result__snippet, .result__snippet");
-
-      const href = linkEl.attr("href") || "";
+      const href = $(el).attr("href") || "";
       const slug = extractProfileSlug(href);
       if (!slug || seenSlugs.has(slug)) return;
+
+      // Skip common non-profile slugs
+      if (["in", "pub", "company", "jobs", "pulse"].includes(slug)) return;
+
       seenSlugs.add(slug);
 
-      const linkText = linkEl.text().trim();
-      const snippetText = snippetEl.text().trim();
+      const linkText = $(el).text().trim();
+      // Walk up to find surrounding text for context
+      const container = $(el).closest("div, li, td");
+      const snippetText = container.length
+        ? container.text().replace(linkText, "").trim()
+        : "";
 
       // Extract name from link text: "First Last - Title | LinkedIn"
       let personName: string | undefined;
@@ -110,58 +109,16 @@ export class LinkedInScraper implements SourceScraper {
         personName,
         title,
         companyName,
-        raw: { linkText, snippetText, href },
+        raw: { linkText, snippetText: snippetText.slice(0, 500), href },
       });
     });
 
-    // Fallback: if .result class didn't match, try generic anchor parsing
     if (leads.length === 0) {
-      $("a[href*='linkedin.com/in/']").each((_, el) => {
-        if (leads.length >= limit) return false;
-
-        const href = $(el).attr("href") || "";
-        const slug = extractProfileSlug(href);
-        if (!slug || seenSlugs.has(slug)) return;
-        seenSlugs.add(slug);
-
-        const linkText = $(el).text().trim();
-        const parentText = $(el).parent().text().trim();
-        const snippetText = parentText.replace(linkText, "").trim();
-
-        let personName: string | undefined;
-        const nameParts = linkText.split(/\s*[-–—|]\s*/);
-        if (nameParts.length > 0 && nameParts[0].length > 1) {
-          personName = nameParts[0]
-            .replace(/linkedin/i, "")
-            .replace(/…/g, "")
-            .trim();
-          if (personName.length < 2) personName = undefined;
-        }
-
-        const { title, companyName } = parseSnippet(
-          snippetText || (nameParts.length > 1 ? nameParts[1] : "")
-        );
-
-        if (!personName) return;
-
-        leads.push({
-          externalId: slug,
-          source: "linkedin",
-          sourceUrl: `https://linkedin.com/in/${slug}`,
-          linkedinUrl: `https://linkedin.com/in/${slug}`,
-          personName,
-          title,
-          companyName,
-          raw: { linkText, snippetText, href },
-        });
-      });
-    }
-
-    if (leads.length === 0) {
-      // Log HTML structure for debugging (first 500 chars)
       console.warn(
-        `[LinkedInScraper] No leads parsed from DDG response. HTML preview: ${html.slice(0, 500)}`
+        `[LinkedInScraper] No leads found. HTML length: ${html.length}, preview: ${html.slice(0, 500)}`
       );
+    } else {
+      console.log(`[LinkedInScraper] Found ${leads.length} leads`);
     }
 
     return { leads, totalFound: leads.length };

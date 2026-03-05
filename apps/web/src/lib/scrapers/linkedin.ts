@@ -3,25 +3,42 @@ import type { SearchQuery, ScraperResult, SourceScraper } from "./types";
 import { fetchHtml } from "./fetch-html";
 
 function buildQuery(query: SearchQuery): string {
+  // DuckDuckGo works best with simple queries — no complex boolean
+  // Strategy: site filter + core keyword terms + location
   const parts = ["site:linkedin.com/in/"];
 
+  // Extract core terms from the first keyword (strip filler like "looking for")
   if (query.keywords?.length) {
-    parts.push(query.keywords.map((k) => `"${k}"`).join(" "));
+    const first = query.keywords[0]
+      .replace(/^looking\s+for\s+/i, "")
+      .replace(/^need\s+/i, "")
+      .trim();
+    parts.push(first);
   }
+
+  // Add first job title only (more = fewer results with DDG)
   if (query.jobTitles?.length) {
-    parts.push(query.jobTitles.map((t) => `"${t}"`).join(" OR "));
+    parts.push(query.jobTitles[0]);
   }
-  if (query.industries?.length) {
-    parts.push(query.industries.map((i) => `"${i}"`).join(" "));
-  }
+
   if (query.location) {
-    parts.push(`"${query.location}"`);
+    parts.push(query.location);
   }
 
   return parts.join(" ");
 }
 
-function extractProfileSlug(url: string): string | null {
+function extractProfileSlug(rawUrl: string): string | null {
+  // DuckDuckGo wraps URLs in redirect links with URL-encoded targets
+  // e.g., //duckduckgo.com/l/?uddg=https%3A%2F%2Fin.linkedin.com%2Fin%2Fjohn-doe
+  let url = rawUrl;
+  if (url.includes("uddg=")) {
+    const uddgMatch = url.match(/uddg=([^&]+)/);
+    if (uddgMatch) {
+      url = decodeURIComponent(uddgMatch[1]);
+    }
+  }
+
   const match = url.match(/linkedin\.com\/in\/([a-zA-Z0-9_-]+)/);
   return match ? match[1] : null;
 }

@@ -2,6 +2,7 @@ import { getAuthContext } from "@/lib/auth-context";
 import { prisma } from "@/lib/prisma";
 import { apiSuccess, apiError, handleApiError } from "@/lib/api-utils";
 import { type NextRequest } from "next/server";
+import { after } from "next/server";
 
 export async function POST(
   _request: NextRequest,
@@ -41,17 +42,22 @@ export async function POST(
 
     const jobIds = jobs.map((j) => j.id);
 
-    // Fire-and-forget: kick off processing without awaiting
+    // Use Next.js after() to process jobs after the response is sent
+    // This keeps the serverless function alive until processing completes
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL
       || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : null)
       || "http://localhost:3000";
 
-    fetch(`${baseUrl}/api/v1/jobs/process`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ jobIds }),
-    }).catch(() => {
-      // Fire-and-forget — errors are handled inside the process route
+    after(async () => {
+      try {
+        await fetch(`${baseUrl}/api/v1/jobs/process`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ jobIds }),
+        });
+      } catch (e) {
+        console.error("[run] Failed to trigger job processing:", e);
+      }
     });
 
     return apiSuccess(

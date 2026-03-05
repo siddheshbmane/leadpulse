@@ -20,24 +20,33 @@ async function fetchViaScrapingBee(
   targetUrl: string,
   apiKey: string
 ): Promise<string> {
+  const trimmedKey = apiKey.trim();
+  console.log(
+    `[fetchHtml] ScrapingBee key length: ${trimmedKey.length}, first/last 4: ${trimmedKey.slice(0, 4)}...${trimmedKey.slice(-4)}`
+  );
+  console.log(`[fetchHtml] Target URL: ${targetUrl}`);
+
   const params = new URLSearchParams({
-    api_key: apiKey,
+    api_key: trimmedKey,
     url: targetUrl,
     render_js: "false",
     premium_proxy: "false",
   });
 
-  const response = await fetch(`${SCRAPINGBEE_BASE}?${params.toString()}`);
+  const fullUrl = `${SCRAPINGBEE_BASE}?${params.toString()}`;
+  const response = await fetch(fullUrl);
 
   if (!response.ok) {
     const body = await response.text().catch(() => "");
     console.error(
-      `[fetchHtml] ScrapingBee error ${response.status}: ${body.slice(0, 200)}`
+      `[fetchHtml] ScrapingBee error ${response.status}: ${body.slice(0, 500)}`
     );
-    throw new Error(`ScrapingBee returned ${response.status}`);
+    throw new Error(`ScrapingBee returned ${response.status}: ${body.slice(0, 100)}`);
   }
 
-  return response.text();
+  const html = await response.text();
+  console.log(`[fetchHtml] ScrapingBee success, HTML length: ${html.length}`);
+  return html;
 }
 
 async function fetchDirect(url: string): Promise<string> {

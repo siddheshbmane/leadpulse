@@ -1,8 +1,10 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { cn } from "@/lib/utils";
 import { useJobs } from "@/modules/jobs/hooks/use-jobs";
+import { useJobStream } from "@/modules/jobs/hooks/use-job-stream";
+import { toast } from "sonner";
 import {
   Clock,
   CheckCircle2,
@@ -117,6 +119,16 @@ export default function JobsPage() {
   const jobs = (data?.data ?? []) as unknown as Job[];
   const [expandedJob, setExpandedJob] = useState<string | null>(null);
   const [now, setNow] = useState(Date.now());
+
+  const onJobComplete = useCallback((job: { id: string; status: string; leadsNew: number; error: string | null }) => {
+    if (job.status === "SUCCESS") {
+      toast.success(`Job completed — ${job.leadsNew} new lead${job.leadsNew !== 1 ? "s" : ""} found`);
+    } else if (job.status === "ERROR") {
+      toast.error(`Job failed: ${job.error || "Unknown error"}`);
+    }
+  }, []);
+
+  useJobStream({ onJobComplete });
 
   // Tick every second for live timestamps
   useEffect(() => {
@@ -363,6 +375,27 @@ export default function JobsPage() {
                             />
                           )}
                         </button>
+
+                        {/* Progress bar for active jobs */}
+                        {isActive && (
+                          <div className="px-4 pb-0">
+                            <div className="h-1 w-full bg-muted rounded-full overflow-hidden">
+                              <div
+                                className={cn(
+                                  "h-full rounded-full transition-all duration-1000",
+                                  job.status === "PENDING"
+                                    ? "w-[10%] bg-yellow-400"
+                                    : "bg-blue-400 animate-pulse"
+                                )}
+                                style={
+                                  job.status === "RUNNING"
+                                    ? { width: "60%", animationDuration: "2s" }
+                                    : undefined
+                                }
+                              />
+                            </div>
+                          </div>
+                        )}
 
                         {/* Expanded Detail Panel */}
                         {isExpanded && (

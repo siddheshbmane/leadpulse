@@ -27,6 +27,7 @@ export function useJobs(params?: { status?: string; searchFilterId?: string }) {
           totalPages: number;
         };
       }>(`/api/v1/jobs?${searchParams.toString()}`),
+    refetchInterval: 5000,
   });
 }
 

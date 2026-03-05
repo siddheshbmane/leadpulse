@@ -39,9 +39,26 @@ export async function POST(
       data: { lastRunAt: new Date() },
     });
 
+    const jobIds = jobs.map((j) => j.id);
+
+    // Fire-and-forget: kick off processing without awaiting
+    const baseUrl =
+      process.env.NEXT_PUBLIC_APP_URL ||
+      process.env.VERCEL_URL
+        ? `https://${process.env.VERCEL_URL}`
+        : "http://localhost:3000";
+
+    fetch(`${baseUrl}/api/v1/jobs/process`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ jobIds }),
+    }).catch(() => {
+      // Fire-and-forget — errors are handled inside the process route
+    });
+
     return apiSuccess(
       {
-        jobIds: jobs.map((j) => j.id),
+        jobIds,
         message: `${jobs.length} scraper job(s) queued`,
         estimatedCredits: 10,
       },

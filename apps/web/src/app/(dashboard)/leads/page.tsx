@@ -314,7 +314,7 @@ export default function LeadsPage() {
                     </td>
                     <td className="px-4 py-3">
                       <span className="text-xs text-muted-foreground font-mono">
-                        {new Date(lead.discoveredAt).toLocaleDateString()}
+                        {new Date(lead.discoveredAt).toLocaleString()}
                       </span>
                     </td>
                   </tr>
@@ -356,7 +356,7 @@ export default function LeadsPage() {
                       {lead.source.replace("_", " ")}
                     </span>
                     <span className="font-mono">
-                      {new Date(lead.discoveredAt).toLocaleDateString()}
+                      {new Date(lead.discoveredAt).toLocaleString()}
                     </span>
                   </div>
                 </CardContent>
@@ -603,7 +603,7 @@ export default function LeadsPage() {
                       <div className="text-sm text-foreground">
                         {new Date(
                           selectedLead.discoveredAt
-                        ).toLocaleDateString()}
+                        ).toLocaleString()}
                       </div>
                     </div>
                   </div>

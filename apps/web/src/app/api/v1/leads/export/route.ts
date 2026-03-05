@@ -14,6 +14,7 @@ const DEFAULT_COLUMNS = [
   "source",
   "status",
   "score",
+  "intentSignal",
   "city",
   "country",
   "discoveredAt",

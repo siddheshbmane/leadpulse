@@ -64,6 +64,9 @@ export async function POST(request: NextRequest) {
         ...data,
         organizationId,
         createdById: userId,
+        nextRunAt: data.runEveryMinutes
+          ? new Date(Date.now() + data.runEveryMinutes * 60 * 1000)
+          : undefined,
       },
     });
 

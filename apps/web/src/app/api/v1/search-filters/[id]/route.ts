@@ -47,9 +47,17 @@ export async function PATCH(
       return apiError("NOT_FOUND", "Search filter not found", 404);
     }
 
+    // Recalculate nextRunAt when runEveryMinutes changes
+    const updateData: Record<string, unknown> = { ...data };
+    if (data.runEveryMinutes !== undefined) {
+      updateData.nextRunAt = data.runEveryMinutes
+        ? new Date(Date.now() + data.runEveryMinutes * 60 * 1000)
+        : null;
+    }
+
     const filter = await prisma.searchFilter.update({
       where: { id },
-      data,
+      data: updateData,
     });
 
     return apiSuccess(filter);
